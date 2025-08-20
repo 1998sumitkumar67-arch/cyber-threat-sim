@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Threat Simulation Engine</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to complement Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        .log-panel {
+            font-family: 'Roboto Mono', monospace;
+        }
+        /* Custom styling for the range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #374151; /* bg-gray-700 */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* bg-blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #111827;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* bg-blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #111827;
+        }
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-gray-800 rounded-xl shadow-2xl p-6 md:p-8 space-y-6 border border-gray-700">
+        
+        <!-- Header Section -->
+        <div class="text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-400">Cybersecurity Threat Simulation Engine</h1>
+            <p class="text-gray-400 mt-2">Simulate cyberattacks in a controlled environment to assess response efficiency.</p>
+        </div>
+
+        <!-- Controls Section -->
+        <div id="controls-panel" class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-900/50 p-6 rounded-lg">
+            <!-- Attack Type Dropdown -->
+            <div>
+                <label for="attack-type" class="block mb-2 text-sm font-medium text-gray-300">Attack Type</label>
+                <select id="attack-type" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    <option value="phishing">Phishing</option>
+                    <option value="ddos">DDoS</option>
+                    <option value="ransomware">Ransomware</option>
+                    <option value="insider">Insider Threat</option>
+                </select>
+            </div>
+            <!-- Complexity Slider -->
+            <div>
+                <label for="complexity-level" class="block mb-2 text-sm font-medium text-gray-300">Complexity Level: <span id="complexity-value">3</span></label>
+                <input id="complexity-level" type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+            </div>
+        </div>
+
+        <!-- Simulate Button -->
+        <div class="text-center">
+            <button id="simulate-button" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 flex items-center justify-center mx-auto">
+                <span id="button-text">Simulate Attack</span>
+                <div id="button-loader" class="loader hidden ml-3"></div>
+            </button>
+        </div>
+
+        <!-- Log Panel -->
+        <div id="log-container" class="bg-black rounded-lg p-4 h-64 overflow-y-auto log-panel border border-gray-700 hidden">
+            <pre id="log-panel" class="text-sm text-green-400 whitespace-pre-wrap"></pre>
+        </div>
+
+        <!-- Results Panel -->
+        <div id="results-panel" class="bg-gray-900/50 p-6 rounded-lg border border-gray-700 hidden">
+            <h2 class="text-xl font-semibold mb-4 text-center text-blue-300">Simulation Results</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-sm text-gray-400">Response Time</p>
+                    <p id="response-time" class="text-2xl font-bold"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-400">Effectiveness</p>
+                    <p id="effectiveness" class="text-2xl font-bold"></p>
+                </div>
+                <div class="sm:col-span-3">
+                    <p class="text-sm text-gray-400 mt-4">AI Suggestions</p>
+                    <p id="suggestions" class="text-lg font-medium text-yellow-400 mt-1"></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Element References
+        const attackTypeSelect = document.getElementById('attack-type');
+        const complexitySlider = document.getElementById('complexity-level');
+        const complexityValueSpan = document.getElementById('complexity-value');
+        const simulateButton = document.getElementById('simulate-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonLoader = document.getElementById('button-loader');
+        const logContainer = document.getElementById('log-container');
+        const logPanel = document.getElementById('log-panel');
+        const resultsPanel = document.getElementById('results-panel');
+
+        // Result display elements
+        const responseTimeEl = document.getElementById('response-time');
+        const effectivenessEl = document.getElementById('effectiveness');
+        const suggestionsEl = document.getElementById('suggestions');
+
+        // Update complexity value display on slider change
+        complexitySlider.addEventListener('input', (e) => {
+            complexityValueSpan.textContent = e.target.value;
+        });
+
+        // Event listener for the simulate button
+        simulateButton.addEventListener('click', () => {
+            const attackType = attackTypeSelect.value;
+            const complexity = parseInt(complexitySlider.value, 10);
+            startSimulation(attackType, complexity);
+        });
+
+        // --- Simulation Logic ---
+
+        // Log messages for different attack types
+        const attackLogs = {
+            phishing: [
+                "Initiating phishing campaign simulation...",
+                "Crafting deceptive email templates...",
+                "Target list acquired: 500 employees.",
+                "Phishing emails sent via SMTP relay.",
+                "Monitoring click-through rates...",
+                "[ALERT] User 'j.doe' clicked a malicious link.",
+                "Attempting credential harvesting from fake login page.",
+                "[RESPONSE] Security Awareness Filter flagged email.",
+                "Firewall rule initiated to block malicious domain.",
+                "[SUCCESS] Credentials NOT compromised. Incident logged."
+            ],
+            ddos: [
+                "Initiating DDoS attack simulation...",
+                "Assembling botnet of 10,000 virtual devices.",
+                "Targeting primary web server IP: 192.168.1.100.",
+                "Starting SYN flood attack.",
+                "Server latency increasing...",
+                "[ALERT] Network traffic spike detected: +500% normal.",
+                "[RESPONSE] DDoS mitigation service activated.",
+                "Scrubbing incoming traffic...",
+                "Malicious packets being dropped.",
+                "[SUCCESS] Service availability maintained. Attack absorbed."
+            ],
+            ransomware: [
+                "Initiating ransomware simulation...",
+                "Exploiting known vulnerability (CVE-2024-XXXX).",
+                "Payload delivered via compromised attachment.",
+                "[ALERT] Unauthorized process 'encrypt.exe' running on workstation 'FINANCE-02'.",
+                "Beginning file encryption process in user directories.",
+                "[RESPONSE] Endpoint Detection & Response (EDR) agent triggered.",
+                "Process terminated automatically.",
+                "Isolating affected workstation from the network.",
+                "Restoring encrypted files from last known good backup.",
+                "[SUCCESS] Ransomware contained. Data restored."
+            ],
+            insider: [
+                "Initiating insider threat simulation...",
+                "Simulating disgruntled employee 'm.smith'.",
+                "Accessing sensitive 'Project Chimera' directory.",
+                "[ALERT] Unusual access pattern detected for user 'm.smith'.",
+                "Attempting to exfiltrate 2GB of data to external cloud storage.",
+                "[RESPONSE] Data Loss Prevention (DLP) policy triggered.",
+                "Upload to unauthorized domain blocked.",
+                "User account automatically suspended pending investigation.",
+                "Security Operations Center (SOC) notified.",
+                "[SUCCESS] Data exfiltration prevented. Threat neutralized."
+            ]
+        };
+        
+        // AI-driven suggestions based on attack type
+        const attackSuggestions = {
+            phishing: "Increase phishing awareness training and deploy advanced email filtering.",
+            ddos: "Review and enhance DDoS mitigation capacity with your provider.",
+            ransomware: "Ensure consistent OS patching and regular, tested data backups.",
+            insider: "Implement stricter access controls (principle of least privilege) and monitor user behavior analytics."
+        };
+
+        /**
+         * Starts the attack simulation process.
+         * @param {string} type - The type of attack to simulate.
+         * @param {number} complexity - The complexity level of the attack.
+         */
+        function startSimulation(type, complexity) {
+            // 1. Reset UI state
+            toggleControls(true);
+            logPanel.textContent = '';
+            logContainer.classList.remove('hidden');
+            resultsPanel.classList.add('hidden');
+
+            // 2. Get the appropriate logs for the attack type
+            const logs = attackLogs[type];
+            const logCount = Math.min(logs.length, 4 + complexity * 2); // More complexity = more log steps
+            let logIndex = 0;
+
+            // 3. Display logs with a delay
+            const logInterval = setInterval(() => {
+                if (logIndex < logCount) {
+                    addLogMessage(logs[logIndex]);
+                    logIndex++;
+                } else {
+                    clearInterval(logInterval);
+                    // 4. Finish simulation and show results after logs are done
+                    setTimeout(() => finishSimulation(type, complexity), 500);
+                }
+            }, 800 - complexity * 100); // Higher complexity = faster logs
+        }
+
+        /**
+         * Finishes the simulation and displays the results.
+         * @param {string} type - The type of attack.
+         * @param {number} complexity - The complexity level.
+         */
+        function finishSimulation(type, complexity) {
+            // Generate plausible results based on complexity
+            const baseEffectiveness = 98;
+            const effectiveness = Math.max(20, baseEffectiveness - (complexity * 15) + (Math.random() * 10 - 5));
+            const responseTime = (complexity * 0.5 + Math.random() * 2).toFixed(1);
+
+            // Populate and show the results panel
+            responseTimeEl.textContent = ${responseTime}s;
+            effectivenessEl.textContent = ${effectiveness.toFixed(0)}%;
+            suggestionsEl.textContent = attackSuggestions[type];
+            
+            resultsPanel.classList.remove('hidden');
+            
+            // Re-enable controls
+            toggleControls(false);
+        }
+
+        /**
+         * Adds a message to the log panel and scrolls to the bottom.
+         * @param {string} message - The log message to add.
+         */
+        function addLogMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logPanel.textContent += [${timestamp}] ${message}\n;
+            // Auto-scroll to the bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        /**
+         * Disables or enables the UI controls during simulation.
+         * @param {boolean} isLoading - True if the simulation is running.
+         */
+        function toggleControls(isLoading) {
+            simulateButton.disabled = isLoading;
+            attackTypeSelect.disabled = isLoading;
+            complexitySlider.disabled = isLoading;
+
+            if (isLoading) {
+                buttonText.classList.add('hidden');
+                buttonLoader.classList.remove('hidden');
+            } else {
+                buttonText.classList.remove('hidden');
+                buttonLoader.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
